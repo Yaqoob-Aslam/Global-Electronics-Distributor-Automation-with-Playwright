@@ -1,0 +1,22 @@
+{
+  "name": "global-electronics-distributor-automation-with-playwright",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yaqoob-Aslam/Global-Electronics-Distributor-Automation-with-Playwright.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Yaqoob-Aslam/Global-Electronics-Distributor-Automation-with-Playwright/issues"
+  },
+  "homepage": "https://github.com/Yaqoob-Aslam/Global-Electronics-Distributor-Automation-with-Playwright#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.10.1"
+  }
+}
