@@ -50,6 +50,12 @@ test('Semiconductors products verification:', async () => {
     await expect(page).toHaveURL(/category\/semiconductors\/programmable-logic-circuits\/programmable-array-logic-circuits/);
     await page.waitForTimeout(5000);
     await page.goBack(); 
+
+    // Click "Show more" - fourth one
+    await page.getByRole('link', { name: 'Show more' }).nth(3).click();
+    await expect(page).toHaveURL(/category\/semiconductors\/programmable-logic-circuits\/splds/);
+    await page.waitForTimeout(5000);
+    await page.goBack();
 });
 
 test('FPGAs semiconductors products filters verification:', async () => {
@@ -91,9 +97,7 @@ test('FPGAs semiconductors products filters verification:', async () => {
 });
 
 test('Cplds semiconductors products filters verification:', async () => {
-
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-
     // Navigate through categories
     await page.getByRole('button', { name: 'Products' }).click();
     await page.getByRole('button', { name: 'Semiconductors' }).click();
@@ -134,7 +138,52 @@ test('Cplds semiconductors products filters verification:', async () => {
     await page.locator("option[value='microchip']").click();
     await page.waitForTimeout(3000);
 
-    // Final clear
+    // Clear clear
+    await page.getByRole('link', { name: 'Clear All' }).click();
+    await page.waitForTimeout(3000);
+});
+
+test('Programmable Array Logic Circuits semiconductors products filters verification:', async () => {
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    // Navigate through categories
+    await page.getByRole('button', { name: 'Products' }).click();
+    await page.getByRole('button', { name: 'Semiconductors' }).click();
+    await page.getByText('Programmable Logic Circuits').click();
+
+    await page.getByRole('link', { name: 'Show more' }).nth(2).click();
+    await expect(page).toHaveURL(/category\/semiconductors\/programmable-logic-circuits\/programmable-array-logic-circuits/);
+    await page.waitForTimeout(5000);
+   
+    await page.locator("option[value='altera']").click();
+    await page.waitForTimeout(3000);
+
+    // Clear clear
+    await page.getByRole('link', { name: 'Clear All' }).click();
+    await page.waitForTimeout(3000);
+});
+
+test('SPLDs semiconductors products filters verification:', async () => {
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    // Navigate through categories
+    await page.getByRole('button', { name: 'Products' }).click();
+    await page.getByRole('button', { name: 'Semiconductors' }).click();
+    await page.getByText('Programmable Logic Circuits').click();
+
+    await page.getByRole('link', { name: 'Show more' }).nth(3).click();
+    await expect(page).toHaveURL(/category\/semiconductors\/programmable-logic-circuits\/splds/);
+    await page.waitForTimeout(5000);
+   
+    await page.locator("option[value='atmel']").click();
+    await page.waitForTimeout(3000);
+
+    // Clear clear
+    await page.getByRole('link', { name: 'Clear All' }).click();
+    await page.waitForTimeout(3000);
+
+    await page.locator("option[value='microchip']").click();
+    await page.waitForTimeout(3000);
+
+    // Clear clear
     await page.getByRole('link', { name: 'Clear All' }).click();
     await page.waitForTimeout(3000);
 });
