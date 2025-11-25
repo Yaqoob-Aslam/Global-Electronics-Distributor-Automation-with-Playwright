@@ -189,7 +189,6 @@ test('SPLDs semiconductors products filters verification:', async () => {
 });
 
 test.afterAll(async () => {
-    await page.pause();
-    // await page.close();
+    await page.close();
   });
 });

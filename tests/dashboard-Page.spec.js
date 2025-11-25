@@ -22,7 +22,8 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
     // Set longer default timeout for all actions
     page.setDefaultTimeout(80000);
     page.setDefaultNavigationTimeout(120000);
-  });
+  }); 
+  
 
   test('Dashboard Page Load Test', async () => {
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
