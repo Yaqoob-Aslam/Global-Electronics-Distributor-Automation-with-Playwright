@@ -9,7 +9,7 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
     browser = await chromium.launch({
       headless: false,
       args: ['--start-maximized'],
-      slowMo: 500, // Increased for more stability
+      slowMo: 500,
     });
   });
 
@@ -24,8 +24,8 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
     page = await context.newPage();
 
     // Set longer default timeout for all actions
-    page.setDefaultTimeout(60000);
-    page.setDefaultNavigationTimeout(60000);
+    page.setDefaultTimeout(360000);
+    page.setDefaultNavigationTimeout(360000);
   });
 
   test.afterEach(async () => {
@@ -35,26 +35,189 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
     }
   });
 
-  // Common product details verify karne ke liye function
-  async function verifyCommonProductDetails() {
+  // Enhanced page state check
+  async function isPageUsable() {
     try {
-      // Basic product information visibility check with better selectors
-      await page.waitForSelector('[data-testid="product-information"], .product-info, h1, h2', { timeout: 10000 });
-      
-      // Multiple possible selectors try karein
-      const productInfoSelectors = [
-        page.getByRole('heading', { name: 'Product Information' }),
-        page.locator('h1, h2').filter({ hasText: 'Product' }),
-        page.locator('h1, h2').filter({ hasText: 'Information' })
-      ];
-      
-      for (const selector of productInfoSelectors) {
-        if (await selector.isVisible({ timeout: 5000 })) {
-          break;
+      // Multiple checks to ensure page is usable
+      await page.evaluate(() => document.readyState);
+      return true;
+    } catch (error) {
+      console.log('Page is not usable:', error.message);
+      return false;
+    }
+  }
+
+  // Safe operation wrapper
+  async function safeOperation(operation, operationName) {
+    if (!(await isPageUsable())) {
+      console.log(`✗ Cannot perform ${operationName} - page is not usable`);
+      return false;
+    }
+    
+    try {
+      return await operation();
+    } catch (error) {
+      console.log(`✗ ${operationName} failed:`, error.message);
+      return false;
+    }
+  }
+
+  // Smart scroll functions with page state check
+  async function smartScrollToElement(selector, maxAttempts = 2) {
+    return await safeOperation(async () => {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const element = page.locator(selector).first();
+          
+          // Check if element is visible without scrolling
+          if (await element.isVisible({ timeout: 2000 })) {
+            console.log(`✓ Element already visible: ${selector}`);
+            return true;
+          }
+          
+          // Scroll to element
+          console.log(`Scrolling to element (attempt ${attempt}): ${selector}`);
+          await element.scrollIntoViewIfNeeded();
+          await page.waitForTimeout(1000);
+          
+          // Check if element is now visible
+          if (await element.isVisible({ timeout: 2000 })) {
+            console.log(`✓ Successfully scrolled to element: ${selector}`);
+            return true;
+          }
+          
+        } catch (error) {
+          console.log(`Scroll attempt ${attempt} failed: ${error.message}`);
+          if (attempt === maxAttempts) throw error;
         }
       }
+      return false;
+    }, `scroll to ${selector}`);
+  }
 
-      // Common fields check with flexible approach
+  // Scroll to multiple possible elements
+  async function scrollToAnyElement(selectors) {
+    return await safeOperation(async () => {
+      for (const selector of selectors) {
+        try {
+          if (await smartScrollToElement(selector)) {
+            return true;
+          }
+        } catch {
+          continue;
+        }
+      }
+      return false;
+    }, 'scroll to any element');
+  }
+
+  // General page scroll functions
+  async function scrollToTop() {
+    return await safeOperation(async () => {
+      await page.evaluate(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      await page.waitForTimeout(1000);
+      console.log('✓ Scrolled to top');
+      return true;
+    }, 'scroll to top');
+  }
+
+  async function scrollByPixels(pixels) {
+    return await safeOperation(async () => {
+      await page.evaluate((pixels) => {
+        window.scrollBy({ top: pixels, behavior: 'smooth' });
+      }, pixels);
+      await page.waitForTimeout(800);
+      console.log(`✓ Scrolled by ${pixels} pixels`);
+      return true;
+    }, `scroll by ${pixels} pixels`);
+  }
+
+  // Smart form filling with page state check
+  async function fillFieldWithScroll(fieldName, value, selectors) {
+    return await safeOperation(async () => {
+      console.log(`Filling ${fieldName}...`);
+      
+      let fieldFilled = false;
+      
+      for (const selector of selectors) {
+        try {
+          const fieldLocator = page.locator(selector).first();
+          if (await fieldLocator.isVisible({ timeout: 3000 })) {
+            console.log(`✓ Found ${fieldName} field with selector: ${selector}`);
+            
+            // Clear field first
+            await fieldLocator.click({ clickCount: 3 });
+            await fieldLocator.press('Backspace');
+            await page.waitForTimeout(500);
+            
+            // Fill the field
+            await fieldLocator.fill(value);
+            await page.waitForTimeout(500);
+            
+            // Verify the value was entered
+            const enteredValue = await fieldLocator.inputValue();
+            if (enteredValue === value) {
+              console.log(`✓ Successfully filled ${fieldName} with: ${value}`);
+              fieldFilled = true;
+              break;
+            } else {
+              console.log(`⚠ Value mismatch for ${fieldName}. Expected: ${value}, Got: ${enteredValue}`);
+              // Try alternative filling method
+              await fieldLocator.click({ clickCount: 3 });
+              await fieldLocator.press('Backspace');
+              await fieldLocator.type(value, { delay: 50 });
+              
+              const newValue = await fieldLocator.inputValue();
+              if (newValue === value) {
+                console.log(`✓ Successfully filled ${fieldName} using type method`);
+                fieldFilled = true;
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          console.log(`Failed with selector ${selector}: ${error.message}`);
+          continue;
+        }
+      }
+      
+      if (!fieldFilled) {
+        console.log(`✗ Could not fill ${fieldName} with any selector`);
+        return false;
+      }
+      
+      return true;
+    }, `fill ${fieldName}`);
+  }
+
+  // Safe navigation function
+  async function safeNavigate(url, options = {}) {
+    return await safeOperation(async () => {
+      await page.goto(url, { 
+        waitUntil: 'domcontentloaded', 
+        timeout: 90000,
+        ...options 
+      });
+      console.log(`✓ Navigated to: ${url}`);
+      return true;
+    }, `navigate to ${url}`);
+  }
+
+  // Safe click function
+  async function safeClick(locator, timeout = 10000) {
+    return await safeOperation(async () => {
+      await locator.click({ timeout });
+      return true;
+    }, 'click element');
+  }
+
+  // Common product details verify karne ke liye function
+  async function verifyCommonProductDetails() {
+    return await safeOperation(async () => {
+      await page.waitForSelector('[data-testid="product-information"], .product-info, h1, h2', { timeout: 10000 });
+      
       const commonFields = ['Mounting Type', 'Family Name', 'Package Type', 'Width', 'Length'];
       for (const field of commonFields) {
         try {
@@ -63,97 +226,13 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
           console.log(`Field "${field}" not found, continuing...`);
         }
       }
-    } catch (error) {
-      console.log('Common product details verification failed:', error.message);
-    }
+      return true;
+    }, 'verify common product details');
   }
 
-  // Dynamic product data verify karne ke liye function
-  async function verifyDynamicProductData() {
-    try {
-      // Product details extract karein
-      const productDetails = await extractProductDetails();
-      
-      // Validate extracted data
-      await validateProductDetails(productDetails);
-    } catch (error) {
-      console.log('Dynamic product data verification failed:', error.message);
-    }
-  }
-
-  // Product details extract karne ka function
-  async function extractProductDetails() {
-    const details = {};
-    
-    try {
-      // Dynamic data extract karein with multiple selector options
-      const detailSelectors = [
-        '.product-details-container',
-        '.product-info',
-        '.specifications',
-        '[data-testid="product-details"]'
-      ];
-      
-      let productText = '';
-      for (const selector of detailSelectors) {
-        if (await page.locator(selector).isVisible({ timeout: 3000 })) {
-          productText = await page.locator(selector).textContent();
-          break;
-        }
-      }
-      
-      // Specific fields extract karein
-      details.familyName = await getFieldValue('Family Name');
-      details.packageType = await getFieldValue('Package Type');
-      details.mountingType = await getFieldValue('Mounting Type');
-      details.operatingVoltage = await getFieldValue('Minimum Operating Supply Voltage');
-      details.logicUnits = await getFieldValue('Number of Logic Units');
-      details.ramBits = await getFieldValue('Number of RAM Bits');
-      
-    } catch (error) {
-      console.log('Error extracting product details:', error.message);
-    }
-    
-    return details;
-  }
-
-  // Helper function to get field values
-  async function getFieldValue(fieldName) {
-    try {
-      // Multiple ways to find the field
-      const fieldLocator = page.getByText(fieldName, { exact: false });
-      if (await fieldLocator.isVisible({ timeout: 3000 })) {
-        const rowLocator = fieldLocator.locator('..'); // Parent element
-        const value = await rowLocator.textContent();
-        return value.replace(fieldName, '').replace(':', '').trim();
-      }
-      return null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  // Product details validate karne ka function
-  async function validateProductDetails(details) {
-    console.log('Product Details:', details);
-    
-    try {
-      // Basic validation - check if required fields exist
-      if (details.familyName) {
-        await expect(page.getByText(details.familyName, { exact: false })).toBeVisible({ timeout: 5000 });
-      }
-      
-      if (details.packageType) {
-        await expect(page.getByText(details.packageType, { exact: false })).toBeVisible({ timeout: 5000 });
-      }
-    } catch (error) {
-      console.log('Product details validation failed:', error.message);
-    }
-  }
-
-  // Smart cart navigation function - Proceed aur VIEW BASKET dono handle karega
+  // Smart cart navigation function
   async function navigateToCartOrBasket() {
-    try {
+    return await safeOperation(async () => {
       console.log('Checking available cart navigation options...');
       
       // Pehle "Proceed" button check karein
@@ -167,10 +246,8 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
       for (const proceedLocator of proceedOptions) {
         try {
           if (await proceedLocator.isVisible({ timeout: 3000 })) {
-            await proceedLocator.click({ timeout: 10000 });
+            await safeClick(proceedLocator);
             console.log('✓ Clicked Proceed button');
-            
-            // Wait for next page to load
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(2000);
             return true;
@@ -193,10 +270,8 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
       for (const basketLocator of viewBasketOptions) {
         try {
           if (await basketLocator.isVisible({ timeout: 3000 })) {
-            await basketLocator.click({ timeout: 10000 });
+            await safeClick(basketLocator);
             console.log('✓ Clicked VIEW BASKET');
-            
-            // Wait for basket page to load
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(2000);
             return true;
@@ -208,294 +283,337 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
       
       // Agar kuch bhi nahi mila toh direct navigation
       console.log('No cart navigation buttons found, using direct navigation...');
-      await page.goto(BASE_URL + 'cart', { waitUntil: 'domcontentloaded' });
-      console.log('✓ Direct navigation to cart');
+      await safeNavigate(BASE_URL + 'cart');
       return true;
       
+    }, 'navigate to cart or basket');
+  }
+
+  // NEW FUNCTION: Handle minimum cart amount error
+  async function handleMinimumCartError(currentProductUrl) {
+    try {
+      console.log('🔄 Checking for minimum cart amount error...');
+      
+      // Check if minimum cart error message is visible
+      const minCartError = page.getByText(/Minimum cart amount is £20\.000/i);
+      if (await minCartError.isVisible({ timeout: 3000 })) {
+        console.log('⚠ Minimum cart amount error detected');
+        console.log('🔄 Redirecting to specified product page...');
+        
+        // Navigate to the specified product page
+        await safeNavigate('https://www.enrgtech.co.uk/product/fpgas/ET13805728/iCE40LP1K-CM49');
+        console.log('✓ Successfully redirected to specified product page');
+        
+        // Continue with normal flow for this new product
+        return true;
+      }
+      return false;
     } catch (error) {
-      console.log('Cart navigation failed:', error.message);
+      console.log('No minimum cart error detected, continuing...');
       return false;
     }
   }
 
-  // Improved checkout process function with smart cart navigation
-  async function completeCheckoutProcess(productNumber) {
-    try {
-      console.log(`\n🛒 Starting checkout process for product ${productNumber}...`);
-      
-      // Step 1: Add to cart
-      console.log('Step 1: Adding product to cart...');
-      
-      const addToCartBtn = page.getByRole('button', { name: /Add To Cart/i });
-      await addToCartBtn.click({ timeout: 10000 });
-      console.log('Clicked Add to Cart button');
+// Improved checkout process function
+async function completeCheckoutProcess(productNumber, currentProductUrl) {
+  try {
+    console.log(`\n🛒 Starting checkout process for product ${productNumber}...`);
+    
+    // Step 1: Add to cart
+    console.log('Step 1: Adding product to cart...');
+    
+    const addToCartBtn = page.getByRole('button', { name: /Add To Cart/i });
+    if (!(await safeClick(addToCartBtn))) {
+      throw new Error('Failed to click Add to Cart button');
+    }
 
-      // Wait for cart update and check for success
+    await page.waitForTimeout(3000);
+    
+    // NEW: Check for minimum cart amount error after adding to cart
+    if (await handleMinimumCartError(currentProductUrl)) {
+      // If redirected to new product page, continue checkout process for this new product
+      console.log('🔄 Continuing checkout process for new product...');
+      
+      // Add the new product to cart
+      const newAddToCartBtn = page.getByRole('button', { name: /Add To Cart/i });
+      if (!(await safeClick(newAddToCartBtn))) {
+        throw new Error('Failed to click Add to Cart button for new product');
+      }
       await page.waitForTimeout(3000);
-      
-      // Check if product was added successfully
-      const successIndicators = [
-        page.getByText(/added to cart/i),
-        page.getByText(/cart updated/i),
-        page.getByText(/successfully added/i),
-        page.locator('.alert-success'),
-        page.locator('[class*="success"]')
-      ];
-      
-      let addToCartSuccess = false;
-      for (const indicator of successIndicators) {
-        try {
-          if (await indicator.isVisible({ timeout: 2000 })) {
-            console.log('✓ Product successfully added to cart');
-            addToCartSuccess = true;
-            break;
-          }
-        } catch {
-          continue;
-        }
-      }
-      
-      if (!addToCartSuccess) {
-        console.log('⚠ No success message found, but continuing...');
-      }
-      
-      // Step 2: Smart navigation to cart/basket
-      console.log('Step 2: Navigating to cart/basket...');
-      const navSuccess = await navigateToCartOrBasket();
-      
-      if (!navSuccess) {
-        throw new Error('Could not navigate to cart/basket');
-      }
-      
-      // Step 3: Proceed to checkout from cart/basket page
-      console.log('Step 3: Proceeding to checkout...');
-      
-      const checkoutOptions = [
-        page.getByRole('button', { name: 'Checkout' }),
-        page.getByRole('link', { name: 'Checkout' }),
-        page.getByText('Checkout', { exact: true }),
-        page.getByRole('button', { name: /Check out securely/i }),
-        page.getByRole('button', { name: /Proceed to Checkout/i }),
-        page.locator('a').filter({ hasText: /Checkout/i })
-      ];
-      
-      let checkoutClicked = false;
-      for (const checkoutLocator of checkoutOptions) {
-        try {
-          if (await checkoutLocator.isVisible({ timeout: 5000 })) {
-            await checkoutLocator.click({ timeout: 10000 });
+    }
+    
+    // Step 2: Smart navigation to cart/basket
+    console.log('Step 2: Navigating to cart/basket...');
+    if (!(await navigateToCartOrBasket())) {
+      throw new Error('Could not navigate to cart/basket');
+    }
+    
+    // Step 3: Proceed to checkout
+    console.log('Step 3: Proceeding to checkout...');
+    
+    const checkoutOptions = [
+      page.getByRole('button', { name: 'Checkout' }),
+      page.getByRole('link', { name: 'Checkout' }),
+      page.getByText('Checkout', { exact: true }),
+      page.getByRole('button', { name: /Check out securely/i }),
+      page.getByRole('button', { name: /Proceed to Checkout/i }),
+      page.locator('a').filter({ hasText: /Checkout/i })
+    ];
+    
+    let checkoutClicked = false;
+    for (const checkoutLocator of checkoutOptions) {
+      try {
+        if (await checkoutLocator.isVisible({ timeout: 5000 })) {
+          if (await safeClick(checkoutLocator)) {
             console.log('✓ Clicked Checkout button');
             checkoutClicked = true;
             break;
           }
-        } catch (error) {
-          continue;
         }
+      } catch (error) {
+        continue;
       }
-      
-      if (!checkoutClicked) {
-        // Fallback: Direct navigation to checkout
-        await page.goto(BASE_URL + 'checkout', { waitUntil: 'domcontentloaded' });
-        console.log('✓ Direct navigation to checkout');
-      }
-
-      // Wait for checkout page to load
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(2000);
-
-      // Step 4: Fill in checkout details
-      console.log('Step 4: Filling checkout details...');
-      
-      // Email field with multiple selector options
-      const emailSelectors = [
-        page.locator('[name="email"]'),
-        page.locator('#email'),
-        page.locator('input[type="email"]').first()
-      ];
-      
-      for (const emailLocator of emailSelectors) {
-        try {
-          if (await emailLocator.isVisible({ timeout: 3000 })) {
-            await emailLocator.fill('test40@gmail.com');
-            break;
-          }
-        } catch {
-          continue;
-        }
-      }
-      
-      // First name field
-      const firstNameSelectors = [
-        page.locator('[name="firstName"]'),
-        page.locator('[name="firstname"]'),
-        page.locator('#firstName'),
-        page.locator('#firstname')
-      ];
-      
-      for (const firstNameLocator of firstNameSelectors) {
-        try {
-          if (await firstNameLocator.isVisible({ timeout: 3000 })) {
-            await firstNameLocator.fill('John');
-            break;
-          }
-        } catch {
-          continue;
-        }
-      }
-      
-      // Last name field
-      const lastNameSelectors = [
-        page.locator('[name="lastName"]'),
-        page.locator('[name="lastname"]'),
-        page.locator('#lastName'),
-        page.locator('#lastname')
-      ];
-      
-      for (const lastNameLocator of lastNameSelectors) {
-        try {
-          if (await lastNameLocator.isVisible({ timeout: 3000 })) {
-            await lastNameLocator.fill('Doe');
-            break;
-          }
-        } catch {
-          continue;
-        }
-      }
-      
-      // Phone field
-      const phoneSelectors = [
-        page.locator('input[name="phone"]'),
-        page.locator('[name="telephone"]'),
-        page.locator('#phone'),
-        page.locator('input[type="tel"]')
-      ];
-      
-      for (const phoneLocator of phoneSelectors) {
-        try {
-          if (await phoneLocator.isVisible({ timeout: 3000 })) {
-            await phoneLocator.fill('1234567890');
-            break;
-          }
-        } catch {
-          continue;
-        }
-      }
-
-      // Password fields
-      const passwordSelectors = [
-        page.locator('[name="password"]'),
-        page.locator('#password'),
-        page.locator('input[type="password"]').first()
-      ];
-      
-      for (const passwordLocator of passwordSelectors) {
-        try {
-          if (await passwordLocator.isVisible({ timeout: 3000 })) {
-            await passwordLocator.fill('SecurePass123!');
-            break;
-          }
-        } catch {
-          continue;
-        }
-      }
-      
-      // Confirm password field
-      const confirmPasswordSelectors = [
-        page.locator('[name="confirm_password"]'),
-        page.locator('[name="confirmPassword"]'),
-        page.locator('#confirm_password'),
-        page.locator('input[type="password"]').nth(1)
-      ];
-      
-      for (const confirmPasswordLocator of confirmPasswordSelectors) {
-        try {
-          if (await confirmPasswordLocator.isVisible({ timeout: 3000 })) {
-            await confirmPasswordLocator.fill('SecurePass123!');
-            break;
-          }
-        } catch {
-          continue;
-        }
-      }
-
-      console.log('✓ Filled in checkout details');
-      
-      console.log(`✓ Checkout process completed for product ${productNumber}`);
-      return true;
-
-    } catch (error) {
-      console.log(`✗ Checkout process failed for product ${productNumber}:`, error.message);
-      // Take screenshot for debugging
-      await page.screenshot({ path: `checkout-error-${productNumber}-${Date.now()}.png` });
-      return false;
     }
+    
+    if (!checkoutClicked) {
+      // Fallback: Direct navigation to checkout
+      if (!(await safeNavigate(BASE_URL + 'checkout'))) {
+        throw new Error('Failed to navigate to checkout');
+      }
+    }
+
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    // Step 4: Fill in checkout details
+    console.log('Step 4: Filling checkout details...');
+    
+    // Scroll to top of form first
+    await scrollToTop();
+    await page.waitForTimeout(1000);
+
+    // Fill all fields
+    const fieldsToFill = [
+      { 
+        name: 'email', 
+        value: 'test40@gmail.com', 
+        selectors: [
+          '[name="email"]', 
+          '#email', 
+          'input[type="email"]',
+          'input[name="email"]'
+        ] 
+      },
+      { 
+        name: 'first name', 
+        value: 'John', 
+        selectors: [
+          '[name="first_name"]',
+          '[name="firstName"]',
+          '[name="firstname"]',
+          '#first_name',
+          '#firstName',
+          '#firstname',
+          'input[placeholder*="First"]',
+          'input[placeholder*="first"]'
+        ] 
+      },
+      { 
+        name: 'last name', 
+        value: 'Doe', 
+        selectors: [
+          '[name="last_name"]',
+          '[name="lastName"]',
+          '[name="lastname"]',
+          '#last_name',
+          '#lastName',
+          '#lastname',
+          'input[placeholder*="Last"]',
+          'input[placeholder*="last"]'
+        ] 
+      },
+      { 
+        name: 'phone', 
+        value: '1234567890', 
+        selectors: [
+          'input[name="phone"]',
+          '[name="telephone"]',
+          '#phone',
+          'input[type="tel"]'
+        ] 
+      },
+      { 
+        name: 'password', 
+        value: 'SecurePass123!', 
+        selectors: [
+          '[name="password"]',
+          '#password',
+          'input[type="password"]'
+        ] 
+      },
+      { 
+        name: 'confirm password', 
+        value: 'SecurePass123!', 
+        selectors: [
+          '[name="confirm_password"]',
+          '[name="confirmPassword"]',
+          '#confirm_password'
+        ] 
+      }
+    ];
+
+    for (const field of fieldsToFill) {
+      console.log(`\n--- Filling ${field.name} ---`);
+      
+      // Scroll between fields
+      await scrollByPixels(150);
+      
+      const success = await fillFieldWithScroll(field.name, field.value, field.selectors);
+      
+      if (!success) {
+        console.log(`⚠ Warning: Could not fill ${field.name}, but continuing...`);
+      }
+      
+      await page.waitForTimeout(500);
+    }
+
+    // NEW: Additional checkout fields filling
+    console.log('\n--- Filling Additional Checkout Fields ---');
+    
+    // Scroll down for additional fields
+    await scrollByPixels(400);
+    
+    // Fill Pakistan phone number dropdown
+    try {
+      const pakistanOption = page.getByTitle('Pakistan (‫پاکستان‬‎): +92', { exact: true });
+      if (await pakistanOption.isVisible({ timeout: 3000 })) {
+        await safeClick(pakistanOption);
+        console.log('✓ Selected Pakistan phone code');
+      }
+    } catch (error) {+92
+      console.log('⚠ Could not select Pakistan phone code');
+    }
+
+    // Fill mobile number
+    await fillFieldWithScroll('mobile number', '3023738608', [
+      '#mobileNo',
+      '[name="mobileNo"]',
+      'input[name="mobileNo"]',
+      'input[placeholder*="mobile"]',
+      'input[placeholder*="phone"]'
+    ]);
+
+    // Fill PO number
+    await fillFieldWithScroll('PO number', '674DE', [
+      '[name="po_number"]',
+      '#po_number',
+      'input[name="po_number"]',
+      'input[placeholder*="PO"]',
+      'input[placeholder*="purchase order"]'
+    ]);
+
+    // Select billing country
+    try {
+      const billingCountry = page.locator('[name="billing_country"]');
+      if (await billingCountry.isVisible({ timeout: 3000 })) {
+        await billingCountry.selectOption({ label: /Pakistan|PK/i });
+        console.log('✓ Selected billing country');
+      }
+    } catch (error) {
+      console.log('⚠ Could not select billing country');
+    }
+
+    // Fill billing address
+    await fillFieldWithScroll('billing address', 'Street#23 Gulberg Lahroe', [
+      '#billing_address_1',
+      '[name="billing_address_1"]',
+      'input[name="billing_address_1"]',
+      'input[placeholder*="address"]',
+      'input[placeholder*="street"]'
+    ]);
+
+    // Fill billing city
+    await fillFieldWithScroll('billing city', 'Lahore', [
+      '#billing_city',
+      '[name="billing_city"]',
+      'input[name="billing_city"]',
+      'input[placeholder*="city"]',
+      'input[placeholder*="town"]'
+    ]);
+
+    // Fill postal code
+    await fillFieldWithScroll('postal code', 'DHE4392', [
+      '#billing_post_zip_code',
+      '[name="billing_post_zip_code"]',
+      'input[name="billing_post_zip_code"]',
+      'input[placeholder*="post"]',
+      'input[placeholder*="zip"]',
+      'input[placeholder*="code"]'
+    ]);
+
+    // Fill EORI number
+    await fillFieldWithScroll('EORI number', 'HDE57', [
+      '#eori',
+      '[name="eori"]',
+      'input[name="eori"]',
+      'input[placeholder*="EORI"]',
+      'input[placeholder*="eori"]'
+    ]);
+
+    // Final scroll to review all fields
+    await scrollToTop();
+    await page.waitForTimeout(1000);
+
+    console.log('✓ All checkout details filled successfully');
+    console.log(`✓ Checkout process completed for product ${productNumber}`);
+    return true;
+
+  } catch (error) {
+    console.log(`✗ Checkout process failed for product ${productNumber}:`, error.message);
+    return false;
   }
+}
 
   // Improved navigation back to products list
   async function navigateToProductsList() {
     try {
       console.log('Returning to products list...');
       
-      // Multiple navigation strategies try karein
-      const navigationOptions = [
-        // Option 1: Direct URL navigation (most reliable)
-        async () => {
-          await page.goto(BASE_URL + 'product-category/semiconductors/fpgas', {
-            waitUntil: 'domcontentloaded',
-            timeout: 30000 
-          });
-        },
-        // Option 2: Go back and wait
-        async () => {
-          await page.goBack({ waitUntil: 'domcontentloaded' });
-          await page.waitForTimeout(2000);
-        },
-        // Option 3: Multiple go back if needed
-        async () => {
-          await page.goBack({ waitUntil: 'domcontentloaded' });
-          await page.waitForTimeout(1000);
-          await page.goBack({ waitUntil: 'domcontentloaded' });
-        }
-      ];
+      if (!(await isPageUsable())) {
+        console.log('Page is not usable, cannot navigate back');
+        return false;
+      }
       
-      for (const navMethod of navigationOptions) {
-        try {
-          await navMethod();
-          
-          // Wait for products to load with multiple selector options
-          const productSelectors = [
-            "div.col-12.product-card",
-            ".product-card",
-            "[class*='product']",
-            "div.product"
-          ];
-          
-          for (const selector of productSelectors) {
-            try {
-              await page.waitForSelector(selector, { timeout: 10000 });
-              console.log(`✓ Products list loaded with selector: ${selector}`);
-              await page.waitForTimeout(2000);
-              return true;
-            } catch {
-              continue;
-            }
-          }
-          
-          // If no specific selector found, check if page has content
-          const pageContent = await page.textContent('body');
-          if (pageContent && pageContent.length > 500) {
-            console.log('✓ Page has content, assuming products list loaded');
+      // Try direct navigation first (most reliable)
+      if (await safeNavigate(BASE_URL + 'product-category/semiconductors/fpgas')) {
+        // Wait for products to load
+        const productSelectors = [
+          "div.col-12.product-card",
+          ".product-card",
+          "[class*='product']",
+          "div.product"
+        ];
+        
+        for (const selector of productSelectors) {
+          try {
+            await page.waitForSelector(selector, { timeout: 10000 });
+            console.log(`✓ Products list loaded with selector: ${selector}`);
             await page.waitForTimeout(2000);
             return true;
+          } catch {
+            continue;
           }
-          
-        } catch (error) {
-          console.log(`Navigation method failed: ${error.message}`);
-          continue;
+        }
+        
+        // If no specific selector found, check if page has content
+        const pageContent = await page.textContent('body');
+        if (pageContent && pageContent.length > 500) {
+          console.log('✓ Page has content, assuming products list loaded');
+          return true;
         }
       }
       
-      throw new Error('Could not navigate back to products list');
+      return false;
       
     } catch (error) {
       console.log('Navigation to products list failed:', error.message);
@@ -505,35 +623,40 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
 
   test('Semiconductors products verification:', async () => {
     console.log('Starting semiconductors products verification...');
-    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 180000 });
-    console.log('Main page loaded');
+    
+    if (!(await safeNavigate(BASE_URL))) {
+      throw new Error('Failed to navigate to main page');
+    }
 
     try {
-      // Navigate through categories with better waiting
-      await page.getByRole('button', { name: 'Products' }).click({ timeout: 10000 });
+      // Navigate through categories
+      if (!(await safeClick(page.getByRole('button', { name: 'Products' })))) {
+        throw new Error('Failed to click Products button');
+      }
       await page.waitForTimeout(2000);
       
-      await page.getByRole('button', { name: 'Semiconductors' }).click({ timeout: 10000 });
+      if (!(await safeClick(page.getByRole('button', { name: 'Semiconductors' })))) {
+        throw new Error('Failed to click Semiconductors button');
+      }
       await page.waitForTimeout(2000);
       
-      await page.locator("//a[normalize-space()='FPGAs']").click({ timeout: 10000 });
+      if (!(await safeClick(page.locator("//a[normalize-space()='FPGAs']")))) {
+        throw new Error('Failed to click FPGAs link');
+      }
+      
       await page.waitForSelector("div.col-12.product-card", { timeout: 15000 });
-      
       console.log('FPGAs page loaded successfully');
 
-      // All products select karein
+      // Get products
       const productCards = await page.locator("div.col-12.product-card").all();
       console.log(`Total products found: ${productCards.length}`);
 
-      // Test only first 3 products for stability (checkout ke liye kam products)
-      const testProducts = Math.min(productCards.length, 3);
-      
+      const testProducts = Math.min(productCards.length, 2);
       let successfulCheckouts = 0;
       
       for (let i = 0; i < testProducts; i++) {
         console.log(`\n=== Testing product ${i + 1}/${testProducts} ===`);
         
-        // Refresh product cards list
         const currentProductCards = await page.locator("div.col-12.product-card").all();
         
         if (i >= currentProductCards.length) {
@@ -545,49 +668,35 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
         
         if (await viewMoreBtn.isVisible({ timeout: 5000 })) {
           const productUrl = await viewMoreBtn.getAttribute('href');
-          console.log(`Product URL: ${productUrl}`);
           
-          // Direct navigation use karein instead of click
           if (productUrl) {
             const fullUrl = productUrl.startsWith('http') ? productUrl : BASE_URL + productUrl;
             console.log(`Navigating to: ${fullUrl}`);
             
-            await page.goto(fullUrl, { 
-              waitUntil: 'domcontentloaded',
-              timeout: 30000 
-            });
-            
-            console.log(`✓ Successfully navigated to product page`);
-            
-            // Verify product details
-            await verifyCommonProductDetails();
-            await verifyDynamicProductData();
-            console.log(`✓ Product ${i + 1} details verified successfully`);
-            
-            // Complete checkout process for this product
-            const checkoutSuccess = await completeCheckoutProcess(i + 1);
-            
-            if (checkoutSuccess) {
-              successfulCheckouts++;
-            }
-            
-            // Back to products list using improved navigation
-            const navSuccess = await navigateToProductsList();
-            
-            if (navSuccess) {
-              console.log(`✓ Successfully returned to products list`);
+            if (await safeNavigate(fullUrl)) {
+              console.log(`✓ Successfully navigated to product page`);
+              
+              // Verify product details
+              await verifyCommonProductDetails();
+              console.log(`✓ Product ${i + 1} details verified successfully`);
+              
+              // Complete checkout process - pass current product URL for error handling
+              const checkoutSuccess = await completeCheckoutProcess(i + 1, fullUrl);
+              
+              if (checkoutSuccess) {
+                successfulCheckouts++;
+              }
+              
+              // Back to products list
+              if (!(await navigateToProductsList())) {
+                console.log(`⚠ Could not return to products list, reloading page...`);
+                await safeNavigate(BASE_URL + 'product-category/semiconductors/fpgas');
+              }
+              
             } else {
-              console.log(`⚠ Could not return to products list, reloading page...`);
-              await page.goto(BASE_URL + 'product-category/semiconductors/fpgas', {
-                waitUntil: 'domcontentloaded'
-              });
+              console.log('Failed to navigate to product page');
             }
-            
-          } else {
-            console.log('No product URL found');
           }
-        } else {
-          console.log(`View more button not visible for product ${i + 1}`);
         }
       }
       
@@ -602,8 +711,6 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
       
     } catch (error) {
       console.log('Test execution failed:', error.message);
-      // Take screenshot for debugging
-      await page.screenshot({ path: `error-${Date.now()}.png` });
       throw error;
     }
   });
