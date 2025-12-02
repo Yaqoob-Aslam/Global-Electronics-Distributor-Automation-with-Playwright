@@ -490,7 +490,7 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
 //         await safeClick(pakistanOption);
 //         console.log('✓ Selected Pakistan phone code');
 //       }
-//     } catch (error) {+92
+//     } catch (error) {
 //       console.log('⚠ Could not select Pakistan phone code');
 //     }
 
@@ -560,9 +560,133 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
 //       'input[placeholder*="eori"]'
 //     ]);
 
-//     // Final scroll to review all fields
-//     await scrollToTop();
-//     await page.waitForTimeout(1000);
+//        // NEW: Credit Card Fields - FIXED for Stripe iframes
+//     console.log('\n--- Filling Credit Card Details ---');
+    
+//     // Scroll down for credit card fields
+//     await scrollByPixels(600);
+    
+//     // Fill card name
+//     await fillFieldWithScroll('card name', 'Jhon Doe', [
+//       '[name="card_name"]',
+//       '#card_name',
+//       'input[name="card_name"]',
+//       'input[placeholder*="name"]',
+//       'input[placeholder*="card"]'
+//     ]);
+
+//     // Fill card number in Stripe iframe - FIXED
+//     try {
+//       console.log('Filling card number in Stripe iframe...');
+      
+//       // Wait for Stripe iframe to load
+//       await page.waitForTimeout(2000);
+      
+//       // Multiple approaches to fill card number in iframe
+//       const cardNumberIframe = page.frameLocator('iframe[name="__privateStripeFrame6753"]');
+//       const cardNumberField = cardNumberIframe.locator('input[placeholder="Card number"], input[name="cardnumber"], input[type="tel"]');
+      
+//       if (await cardNumberField.isVisible({ timeout: 5000 })) {
+//         await cardNumberField.click();
+//         await cardNumberField.fill('4444 6666 7777 8888');
+//         console.log('✓ Filled card number in Stripe iframe');
+//       } else {
+//         console.log('⚠ Card number iframe field not found');
+//       }
+//     } catch (error) {
+//       console.log('Error filling card number in iframe:', error.message);
+//     }
+
+//     // Fill card expiry in Stripe iframe - FIXED
+//     try {
+//       console.log('Filling card expiry in Stripe iframe...');
+      
+//       // Wait for Stripe iframe to load
+//       await page.waitForTimeout(1000);
+      
+//       const cardExpiryIframe = page.frameLocator('iframe[name="__privateStripeFrame6754"]');
+//       const cardExpiryField = cardExpiryIframe.locator('input[placeholder="MM / YY"], input[name="exp-date"], input[placeholder*="expir"], input[type="tel"]');
+      
+//       if (await cardExpiryField.isVisible({ timeout: 5000 })) {
+//         await cardExpiryField.click();
+//         await cardExpiryField.fill('09 2030');
+//         console.log('✓ Filled card expiry in Stripe iframe');
+//       } else {
+//         console.log('⚠ Card expiry iframe field not found');
+//       }
+//     } catch (error) {
+//       console.log('Error filling card expiry in iframe:', error.message);
+//     }
+
+//     // Fill card CVC in Stripe iframe - FIXED
+//     try {
+//       console.log('Filling card CVC in Stripe iframe...');
+      
+//       // Wait for Stripe iframe to load
+//       await page.waitForTimeout(1000);
+      
+//       const cardCVCIframe = page.frameLocator('iframe[name="__privateStripeFrame6755"]');
+//       const cardCVCField = cardCVCIframe.locator('input[placeholder="CVC"], input[name="cvc"], input[placeholder*="CVV"], input[type="tel"]');
+      
+//       if (await cardCVCField.isVisible({ timeout: 5000 })) {
+//         await cardCVCField.click();
+//         await cardCVCField.fill('089');
+//         console.log('✓ Filled card CVC in Stripe iframe');
+//       } else {
+//         console.log('⚠ Card CVC iframe field not found');
+//       }
+//     } catch (error) {
+//       console.log('Error filling card CVC in iframe:', error.message);
+//     }
+
+//     // Alternative approach: Try to find iframes dynamically if specific names don't work
+//     try {
+//       console.log('Trying dynamic iframe detection...');
+      
+//       // Get all iframes on the page
+//       const allIframes = page.locator('iframe');
+//       const iframeCount = await allIframes.count();
+//       console.log(`Found ${iframeCount} iframes on the page`);
+      
+//       for (let i = 0; i < iframeCount; i++) {
+//         try {
+//           const iframe = allIframes.nth(i);
+//           const iframeName = await iframe.getAttribute('name');
+          
+//           if (iframeName && iframeName.includes('Stripe')) {
+//             console.log(`Found Stripe iframe: ${iframeName}`);
+            
+//             const stripeFrame = page.frameLocator(`iframe[name="${iframeName}"]`);
+//             const inputFields = stripeFrame.locator('input[type="tel"], input[placeholder*="card"], input[placeholder*="expir"], input[placeholder*="cvc"]');
+//             const inputCount = await inputFields.count();
+            
+//             console.log(`Found ${inputCount} input fields in iframe ${iframeName}`);
+            
+//             for (let j = 0; j < inputCount; j++) {
+//               const inputField = inputFields.nth(j);
+//               const placeholder = await inputField.getAttribute('placeholder');
+              
+//               if (placeholder) {
+//                 if (placeholder.toLowerCase().includes('card') || placeholder.toLowerCase().includes('number')) {
+//                   await inputField.fill('4444 6666 7777 8888');
+//                   console.log(`✓ Filled card number in iframe ${iframeName}`);
+//                 } else if (placeholder.toLowerCase().includes('expir') || placeholder.toLowerCase().includes('mm/yy')) {
+//                   await inputField.fill('09 2030');
+//                   console.log(`✓ Filled card expiry in iframe ${iframeName}`);
+//                 } else if (placeholder.toLowerCase().includes('cvc') || placeholder.toLowerCase().includes('cvv')) {
+//                   await inputField.fill('089');
+//                   console.log(`✓ Filled card CVC in iframe ${iframeName}`);
+//                 }
+//               }
+//             }
+//           }
+//         } catch (error) {
+//           console.log(`Error processing iframe ${i}:`, error.message);
+//         }
+//       }
+//     } catch (error) {
+//       console.log('Dynamic iframe detection failed:', error.message);
+//     }
 
 //     console.log('✓ All checkout details filled successfully');
 //     console.log(`✓ Checkout process completed for product ${productNumber}`);
@@ -574,7 +698,6 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
 //   }
 // }
 
-// Improved checkout process function
 async function completeCheckoutProcess(productNumber, currentProductUrl) {
   try {
     console.log(`\n🛒 Starting checkout process for product ${productNumber}...`);
@@ -820,7 +943,7 @@ async function completeCheckoutProcess(productNumber, currentProductUrl) {
       'input[placeholder*="eori"]'
     ]);
 
-       // NEW: Credit Card Fields - FIXED for Stripe iframes
+    // NEW: Credit Card Fields - FIXED for Stripe iframes
     console.log('\n--- Filling Credit Card Details ---');
     
     // Scroll down for credit card fields
@@ -835,108 +958,83 @@ async function completeCheckoutProcess(productNumber, currentProductUrl) {
       'input[placeholder*="card"]'
     ]);
 
-    // Fill card number in Stripe iframe - FIXED
+    // Wait for Stripe iframes to load
+    console.log('Waiting for Stripe iframes to load...');
+    await page.waitForTimeout(3000);
+    
+    // Multiple approaches to handle Stripe iframes
     try {
-      console.log('Filling card number in Stripe iframe...');
+      // APPROACH 1: Try using the exact iframe titles you provided
+      console.log('Trying Approach 1: Using exact iframe titles...');
       
-      // Wait for Stripe iframe to load
-      await page.waitForTimeout(2000);
-      
-      // Multiple approaches to fill card number in iframe
-      const cardNumberIframe = page.frameLocator('iframe[name="__privateStripeFrame6753"]');
-      const cardNumberField = cardNumberIframe.locator('input[placeholder="Card number"], input[name="cardnumber"], input[type="tel"]');
-      
-      if (await cardNumberField.isVisible({ timeout: 5000 })) {
-        await cardNumberField.click();
-        await cardNumberField.fill('4444 6666 7777 8888');
+      try {
+        // Card Number iframe
+        const cardNumberFrame = page.frameLocator('iframe[title*="Secure card number input frame"]');
+        await cardNumberFrame.locator('input').fill("4242424242424242");
         console.log('✓ Filled card number in Stripe iframe');
-      } else {
-        console.log('⚠ Card number iframe field not found');
+      } catch (error) {
+        console.log('⚠ Card number iframe not found with title');
       }
-    } catch (error) {
-      console.log('Error filling card number in iframe:', error.message);
-    }
-
-    // Fill card expiry in Stripe iframe - FIXED
-    try {
-      console.log('Filling card expiry in Stripe iframe...');
       
-      // Wait for Stripe iframe to load
-      await page.waitForTimeout(1000);
-      
-      const cardExpiryIframe = page.frameLocator('iframe[name="__privateStripeFrame6754"]');
-      const cardExpiryField = cardExpiryIframe.locator('input[placeholder="MM / YY"], input[name="exp-date"], input[placeholder*="expir"], input[type="tel"]');
-      
-      if (await cardExpiryField.isVisible({ timeout: 5000 })) {
-        await cardExpiryField.click();
-        await cardExpiryField.fill('09 2030');
-        console.log('✓ Filled card expiry in Stripe iframe');
-      } else {
-        console.log('⚠ Card expiry iframe field not found');
+      try {
+        // Expiry iframe
+        const expiryFrame = page.frameLocator('iframe[title*="Secure expiration date input frame"]');
+        await expiryFrame.locator('input').fill("12/34");
+        console.log('✓ Filled expiry in Stripe iframe');
+      } catch (error) {
+        console.log('⚠ Expiry iframe not found with title');
       }
-    } catch (error) {
-      console.log('Error filling card expiry in iframe:', error.message);
-    }
-
-    // Fill card CVC in Stripe iframe - FIXED
-    try {
-      console.log('Filling card CVC in Stripe iframe...');
       
-      // Wait for Stripe iframe to load
-      await page.waitForTimeout(1000);
-      
-      const cardCVCIframe = page.frameLocator('iframe[name="__privateStripeFrame6755"]');
-      const cardCVCField = cardCVCIframe.locator('input[placeholder="CVC"], input[name="cvc"], input[placeholder*="CVV"], input[type="tel"]');
-      
-      if (await cardCVCField.isVisible({ timeout: 5000 })) {
-        await cardCVCField.click();
-        await cardCVCField.fill('089');
-        console.log('✓ Filled card CVC in Stripe iframe');
-      } else {
-        console.log('⚠ Card CVC iframe field not found');
+      try {
+        // CVC iframe
+        const cvcFrame = page.frameLocator('iframe[title*="Secure CVC input frame"]');
+        await cvcFrame.locator('input').fill("123");
+        console.log('✓ Filled CVC in Stripe iframe');
+      } catch (error) {
+        console.log('⚠ CVC iframe not found with title');
       }
+      
     } catch (error) {
-      console.log('Error filling card CVC in iframe:', error.message);
+      console.log('Approach 1 failed:', error.message);
     }
-
-    // Alternative approach: Try to find iframes dynamically if specific names don't work
+    
+    // APPROACH 2: Try alternative iframe names/attributes
     try {
-      console.log('Trying dynamic iframe detection...');
+      console.log('Trying Approach 2: Alternative iframe detection...');
       
-      // Get all iframes on the page
-      const allIframes = page.locator('iframe');
-      const iframeCount = await allIframes.count();
-      console.log(`Found ${iframeCount} iframes on the page`);
+      // Get all iframes
+      const allIframes = await page.locator('iframe').all();
+      console.log(`Found ${allIframes.length} iframes on the page`);
       
-      for (let i = 0; i < iframeCount; i++) {
+      let filledFields = 0;
+      
+      for (let i = 0; i < allIframes.length; i++) {
         try {
-          const iframe = allIframes.nth(i);
-          const iframeName = await iframe.getAttribute('name');
+          const iframe = allIframes[i];
+          const title = await iframe.getAttribute('title');
+          const name = await iframe.getAttribute('name');
           
-          if (iframeName && iframeName.includes('Stripe')) {
-            console.log(`Found Stripe iframe: ${iframeName}`);
+          if (title && title.includes('Secure') && title.includes('input')) {
+            console.log(`Found secure iframe ${i}: title="${title}", name="${name}"`);
             
-            const stripeFrame = page.frameLocator(`iframe[name="${iframeName}"]`);
-            const inputFields = stripeFrame.locator('input[type="tel"], input[placeholder*="card"], input[placeholder*="expir"], input[placeholder*="cvc"]');
-            const inputCount = await inputFields.count();
+            // Create frame locator
+            const stripeFrame = page.frameLocator(`iframe[title="${title}"]`);
             
-            console.log(`Found ${inputCount} input fields in iframe ${iframeName}`);
-            
-            for (let j = 0; j < inputCount; j++) {
-              const inputField = inputFields.nth(j);
-              const placeholder = await inputField.getAttribute('placeholder');
-              
-              if (placeholder) {
-                if (placeholder.toLowerCase().includes('card') || placeholder.toLowerCase().includes('number')) {
-                  await inputField.fill('4444 6666 7777 8888');
-                  console.log(`✓ Filled card number in iframe ${iframeName}`);
-                } else if (placeholder.toLowerCase().includes('expir') || placeholder.toLowerCase().includes('mm/yy')) {
-                  await inputField.fill('09 2030');
-                  console.log(`✓ Filled card expiry in iframe ${iframeName}`);
-                } else if (placeholder.toLowerCase().includes('cvc') || placeholder.toLowerCase().includes('cvv')) {
-                  await inputField.fill('089');
-                  console.log(`✓ Filled card CVC in iframe ${iframeName}`);
-                }
+            // Try to fill the input field
+            const input = stripeFrame.locator('input[type="text"], input[type="tel"]');
+            if (await input.count() > 0) {
+              if (title.includes('card number')) {
+                await input.fill('4242424242424242');
+                filledFields++;
+                console.log('✓ Filled card number');
+              } else if (title.includes('expiration')) {
+                await input.fill('12/34');
+                filledFields++;
+                console.log('✓ Filled expiry');
+              } else if (title.includes('CVC')) {
+                await input.fill('123');
+                filledFields++;
+                console.log('✓ Filled CVC');
               }
             }
           }
@@ -944,8 +1042,52 @@ async function completeCheckoutProcess(productNumber, currentProductUrl) {
           console.log(`Error processing iframe ${i}:`, error.message);
         }
       }
+      
+      if (filledFields >= 2) {
+        console.log(`✓ Successfully filled ${filledFields} card fields`);
+      }
+      
     } catch (error) {
-      console.log('Dynamic iframe detection failed:', error.message);
+      console.log('Approach 2 failed:', error.message);
+    }
+    
+    // APPROACH 3: Fallback to generic Stripe iframe detection
+    try {
+      console.log('Trying Approach 3: Generic Stripe detection...');
+      
+      // Look for any iframe with "Stripe" in name or src
+      const stripeIframes = await page.locator('iframe[name*="Stripe"], iframe[src*="stripe"], iframe[name*="__privateStripeFrame"]').all();
+      console.log(`Found ${stripeIframes.length} Stripe-related iframes`);
+      
+      for (let i = 0; i < stripeIframes.length; i++) {
+        try {
+          const iframe = stripeIframes[i];
+          const name = await iframe.getAttribute('name') || '';
+          const title = await iframe.getAttribute('title') || '';
+          
+          console.log(`Processing Stripe iframe ${i}: name="${name}", title="${title}"`);
+          
+          // Fill based on name pattern
+          if (name.includes('card') || title.includes('card')) {
+            const cardFrame = page.frameLocator(`iframe[name="${name}"]`);
+            await cardFrame.locator('input').first().fill('4242424242424242');
+            console.log('✓ Filled card number in Stripe iframe');
+          } else if (name.includes('exp') || title.includes('exp')) {
+            const expFrame = page.frameLocator(`iframe[name="${name}"]`);
+            await expFrame.locator('input').first().fill('12/34');
+            console.log('✓ Filled expiry in Stripe iframe');
+          } else if (name.includes('cvc') || title.includes('cvc')) {
+            const cvcFrame = page.frameLocator(`iframe[name="${name}"]`);
+            await cvcFrame.locator('input').first().fill('123');
+            console.log('✓ Filled CVC in Stripe iframe');
+          }
+        } catch (error) {
+          console.log(`Error with Stripe iframe ${i}:`, error.message);
+        }
+      }
+      
+    } catch (error) {
+      console.log('Approach 3 failed:', error.message);
     }
 
     console.log('✓ All checkout details filled successfully');
@@ -957,7 +1099,6 @@ async function completeCheckoutProcess(productNumber, currentProductUrl) {
     return false;
   }
 }
-
   // Improved navigation back to products list
   async function navigateToProductsList() {
     try {
@@ -1024,12 +1165,12 @@ async function completeCheckoutProcess(productNumber, currentProductUrl) {
       }
       await page.waitForTimeout(2000);
       
-      if (!(await safeClick(page.locator("//a[normalize-space()='FPGAs']")))) {
+      if (!(await safeClick(page.locator("//a[normalize-space()='CPLDs']")))) {
         throw new Error('Failed to click FPGAs link');
       }
       
       await page.waitForSelector("div.col-12.product-card", { timeout: 15000 });
-      console.log('FPGAs page loaded successfully');
+      console.log('CPLDs page loaded successfully');
 
       // Get products
       const productCards = await page.locator("div.col-12.product-card").all();
