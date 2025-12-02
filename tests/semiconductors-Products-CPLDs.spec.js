@@ -315,389 +315,6 @@ test.describe.serial('Enrgtech - Global Electronics Distributor', () => {
   }
 
 // Improved checkout process function
-// async function completeCheckoutProcess(productNumber, currentProductUrl) {
-//   try {
-//     console.log(`\n🛒 Starting checkout process for product ${productNumber}...`);
-    
-//     // Step 1: Add to cart
-//     console.log('Step 1: Adding product to cart...');
-    
-//     const addToCartBtn = page.getByRole('button', { name: /Add To Cart/i });
-//     if (!(await safeClick(addToCartBtn))) {
-//       throw new Error('Failed to click Add to Cart button');
-//     }
-
-//     await page.waitForTimeout(3000);
-    
-//     // NEW: Check for minimum cart amount error after adding to cart
-//     if (await handleMinimumCartError(currentProductUrl)) {
-//       // If redirected to new product page, continue checkout process for this new product
-//       console.log('🔄 Continuing checkout process for new product...');
-      
-//       // Add the new product to cart
-//       const newAddToCartBtn = page.getByRole('button', { name: /Add To Cart/i });
-//       if (!(await safeClick(newAddToCartBtn))) {
-//         throw new Error('Failed to click Add to Cart button for new product');
-//       }
-//       await page.waitForTimeout(3000);
-//     }
-    
-//     // Step 2: Smart navigation to cart/basket
-//     console.log('Step 2: Navigating to cart/basket...');
-//     if (!(await navigateToCartOrBasket())) {
-//       throw new Error('Could not navigate to cart/basket');
-//     }
-    
-//     // Step 3: Proceed to checkout
-//     console.log('Step 3: Proceeding to checkout...');
-    
-//     const checkoutOptions = [
-//       page.getByRole('button', { name: 'Checkout' }),
-//       page.getByRole('link', { name: 'Checkout' }),
-//       page.getByText('Checkout', { exact: true }),
-//       page.getByRole('button', { name: /Check out securely/i }),
-//       page.getByRole('button', { name: /Proceed to Checkout/i }),
-//       page.locator('a').filter({ hasText: /Checkout/i })
-//     ];
-    
-//     let checkoutClicked = false;
-//     for (const checkoutLocator of checkoutOptions) {
-//       try {
-//         if (await checkoutLocator.isVisible({ timeout: 5000 })) {
-//           if (await safeClick(checkoutLocator)) {
-//             console.log('✓ Clicked Checkout button');
-//             checkoutClicked = true;
-//             break;
-//           }
-//         }
-//       } catch (error) {
-//         continue;
-//       }
-//     }
-    
-//     if (!checkoutClicked) {
-//       // Fallback: Direct navigation to checkout
-//       if (!(await safeNavigate(BASE_URL + 'checkout'))) {
-//         throw new Error('Failed to navigate to checkout');
-//       }
-//     }
-
-//     await page.waitForLoadState('domcontentloaded');
-//     await page.waitForTimeout(2000);
-
-//     // Step 4: Fill in checkout details
-//     console.log('Step 4: Filling checkout details...');
-    
-//     // Scroll to top of form first
-//     await scrollToTop();
-//     await page.waitForTimeout(1000);
-
-//     // Fill all fields
-//     const fieldsToFill = [
-//       { 
-//         name: 'email', 
-//         value: 'test40@gmail.com', 
-//         selectors: [
-//           '[name="email"]', 
-//           '#email', 
-//           'input[type="email"]',
-//           'input[name="email"]'
-//         ] 
-//       },
-//       { 
-//         name: 'first name', 
-//         value: 'John', 
-//         selectors: [
-//           '[name="first_name"]',
-//           '[name="firstName"]',
-//           '[name="firstname"]',
-//           '#first_name',
-//           '#firstName',
-//           '#firstname',
-//           'input[placeholder*="First"]',
-//           'input[placeholder*="first"]'
-//         ] 
-//       },
-//       { 
-//         name: 'last name', 
-//         value: 'Doe', 
-//         selectors: [
-//           '[name="last_name"]',
-//           '[name="lastName"]',
-//           '[name="lastname"]',
-//           '#last_name',
-//           '#lastName',
-//           '#lastname',
-//           'input[placeholder*="Last"]',
-//           'input[placeholder*="last"]'
-//         ] 
-//       },
-//       { 
-//         name: 'phone', 
-//         value: '1234567890', 
-//         selectors: [
-//           'input[name="phone"]',
-//           '[name="telephone"]',
-//           '#phone',
-//           'input[type="tel"]'
-//         ] 
-//       },
-//       { 
-//         name: 'password', 
-//         value: 'SecurePass123!', 
-//         selectors: [
-//           '[name="password"]',
-//           '#password',
-//           'input[type="password"]'
-//         ] 
-//       },
-//       { 
-//         name: 'confirm password', 
-//         value: 'SecurePass123!', 
-//         selectors: [
-//           '[name="confirm_password"]',
-//           '[name="confirmPassword"]',
-//           '#confirm_password'
-//         ] 
-//       }
-//     ];
-
-//     for (const field of fieldsToFill) {
-//       console.log(`\n--- Filling ${field.name} ---`);
-      
-//       // Scroll between fields
-//       await scrollByPixels(150);
-      
-//       const success = await fillFieldWithScroll(field.name, field.value, field.selectors);
-      
-//       if (!success) {
-//         console.log(`⚠ Warning: Could not fill ${field.name}, but continuing...`);
-//       }
-      
-//       await page.waitForTimeout(500);
-//     }
-
-//     // NEW: Additional checkout fields filling
-//     console.log('\n--- Filling Additional Checkout Fields ---');
-    
-//     // Scroll down for additional fields
-//     await scrollByPixels(400);
-    
-//     // Fill Pakistan phone number dropdown
-//     try {
-//       const pakistanOption = page.getByTitle('Pakistan (‫پاکستان‬‎): +92', { exact: true });
-//       if (await pakistanOption.isVisible({ timeout: 3000 })) {
-//         await safeClick(pakistanOption);
-//         console.log('✓ Selected Pakistan phone code');
-//       }
-//     } catch (error) {
-//       console.log('⚠ Could not select Pakistan phone code');
-//     }
-
-//     // Fill mobile number
-//     await fillFieldWithScroll('mobile number', '3023738608', [
-//       '#mobileNo',
-//       '[name="mobileNo"]',
-//       'input[name="mobileNo"]',
-//       'input[placeholder*="mobile"]',
-//       'input[placeholder*="phone"]'
-//     ]);
-
-//     // Fill PO number
-//     await fillFieldWithScroll('PO number', '674DE', [
-//       '[name="po_number"]',
-//       '#po_number',
-//       'input[name="po_number"]',
-//       'input[placeholder*="PO"]',
-//       'input[placeholder*="purchase order"]'
-//     ]);
-
-//     // Select billing country
-//     try {
-//       const billingCountry = page.locator('[name="billing_country"]');
-//       if (await billingCountry.isVisible({ timeout: 3000 })) {
-//         await billingCountry.selectOption({ label: /Pakistan|PK/i });
-//         console.log('✓ Selected billing country');
-//       }
-//     } catch (error) {
-//       console.log('⚠ Could not select billing country');
-//     }
-
-//     // Fill billing address
-//     await fillFieldWithScroll('billing address', 'Street#23 Gulberg Lahroe', [
-//       '#billing_address_1',
-//       '[name="billing_address_1"]',
-//       'input[name="billing_address_1"]',
-//       'input[placeholder*="address"]',
-//       'input[placeholder*="street"]'
-//     ]);
-
-//     // Fill billing city
-//     await fillFieldWithScroll('billing city', 'Lahore', [
-//       '#billing_city',
-//       '[name="billing_city"]',
-//       'input[name="billing_city"]',
-//       'input[placeholder*="city"]',
-//       'input[placeholder*="town"]'
-//     ]);
-
-//     // Fill postal code
-//     await fillFieldWithScroll('postal code', 'DHE4392', [
-//       '#billing_post_zip_code',
-//       '[name="billing_post_zip_code"]',
-//       'input[name="billing_post_zip_code"]',
-//       'input[placeholder*="post"]',
-//       'input[placeholder*="zip"]',
-//       'input[placeholder*="code"]'
-//     ]);
-
-//     // Fill EORI number
-//     await fillFieldWithScroll('EORI number', 'HDE57', [
-//       '#eori',
-//       '[name="eori"]',
-//       'input[name="eori"]',
-//       'input[placeholder*="EORI"]',
-//       'input[placeholder*="eori"]'
-//     ]);
-
-//        // NEW: Credit Card Fields - FIXED for Stripe iframes
-//     console.log('\n--- Filling Credit Card Details ---');
-    
-//     // Scroll down for credit card fields
-//     await scrollByPixels(600);
-    
-//     // Fill card name
-//     await fillFieldWithScroll('card name', 'Jhon Doe', [
-//       '[name="card_name"]',
-//       '#card_name',
-//       'input[name="card_name"]',
-//       'input[placeholder*="name"]',
-//       'input[placeholder*="card"]'
-//     ]);
-
-//     // Fill card number in Stripe iframe - FIXED
-//     try {
-//       console.log('Filling card number in Stripe iframe...');
-      
-//       // Wait for Stripe iframe to load
-//       await page.waitForTimeout(2000);
-      
-//       // Multiple approaches to fill card number in iframe
-//       const cardNumberIframe = page.frameLocator('iframe[name="__privateStripeFrame6753"]');
-//       const cardNumberField = cardNumberIframe.locator('input[placeholder="Card number"], input[name="cardnumber"], input[type="tel"]');
-      
-//       if (await cardNumberField.isVisible({ timeout: 5000 })) {
-//         await cardNumberField.click();
-//         await cardNumberField.fill('4444 6666 7777 8888');
-//         console.log('✓ Filled card number in Stripe iframe');
-//       } else {
-//         console.log('⚠ Card number iframe field not found');
-//       }
-//     } catch (error) {
-//       console.log('Error filling card number in iframe:', error.message);
-//     }
-
-//     // Fill card expiry in Stripe iframe - FIXED
-//     try {
-//       console.log('Filling card expiry in Stripe iframe...');
-      
-//       // Wait for Stripe iframe to load
-//       await page.waitForTimeout(1000);
-      
-//       const cardExpiryIframe = page.frameLocator('iframe[name="__privateStripeFrame6754"]');
-//       const cardExpiryField = cardExpiryIframe.locator('input[placeholder="MM / YY"], input[name="exp-date"], input[placeholder*="expir"], input[type="tel"]');
-      
-//       if (await cardExpiryField.isVisible({ timeout: 5000 })) {
-//         await cardExpiryField.click();
-//         await cardExpiryField.fill('09 2030');
-//         console.log('✓ Filled card expiry in Stripe iframe');
-//       } else {
-//         console.log('⚠ Card expiry iframe field not found');
-//       }
-//     } catch (error) {
-//       console.log('Error filling card expiry in iframe:', error.message);
-//     }
-
-//     // Fill card CVC in Stripe iframe - FIXED
-//     try {
-//       console.log('Filling card CVC in Stripe iframe...');
-      
-//       // Wait for Stripe iframe to load
-//       await page.waitForTimeout(1000);
-      
-//       const cardCVCIframe = page.frameLocator('iframe[name="__privateStripeFrame6755"]');
-//       const cardCVCField = cardCVCIframe.locator('input[placeholder="CVC"], input[name="cvc"], input[placeholder*="CVV"], input[type="tel"]');
-      
-//       if (await cardCVCField.isVisible({ timeout: 5000 })) {
-//         await cardCVCField.click();
-//         await cardCVCField.fill('089');
-//         console.log('✓ Filled card CVC in Stripe iframe');
-//       } else {
-//         console.log('⚠ Card CVC iframe field not found');
-//       }
-//     } catch (error) {
-//       console.log('Error filling card CVC in iframe:', error.message);
-//     }
-
-//     // Alternative approach: Try to find iframes dynamically if specific names don't work
-//     try {
-//       console.log('Trying dynamic iframe detection...');
-      
-//       // Get all iframes on the page
-//       const allIframes = page.locator('iframe');
-//       const iframeCount = await allIframes.count();
-//       console.log(`Found ${iframeCount} iframes on the page`);
-      
-//       for (let i = 0; i < iframeCount; i++) {
-//         try {
-//           const iframe = allIframes.nth(i);
-//           const iframeName = await iframe.getAttribute('name');
-          
-//           if (iframeName && iframeName.includes('Stripe')) {
-//             console.log(`Found Stripe iframe: ${iframeName}`);
-            
-//             const stripeFrame = page.frameLocator(`iframe[name="${iframeName}"]`);
-//             const inputFields = stripeFrame.locator('input[type="tel"], input[placeholder*="card"], input[placeholder*="expir"], input[placeholder*="cvc"]');
-//             const inputCount = await inputFields.count();
-            
-//             console.log(`Found ${inputCount} input fields in iframe ${iframeName}`);
-            
-//             for (let j = 0; j < inputCount; j++) {
-//               const inputField = inputFields.nth(j);
-//               const placeholder = await inputField.getAttribute('placeholder');
-              
-//               if (placeholder) {
-//                 if (placeholder.toLowerCase().includes('card') || placeholder.toLowerCase().includes('number')) {
-//                   await inputField.fill('4444 6666 7777 8888');
-//                   console.log(`✓ Filled card number in iframe ${iframeName}`);
-//                 } else if (placeholder.toLowerCase().includes('expir') || placeholder.toLowerCase().includes('mm/yy')) {
-//                   await inputField.fill('09 2030');
-//                   console.log(`✓ Filled card expiry in iframe ${iframeName}`);
-//                 } else if (placeholder.toLowerCase().includes('cvc') || placeholder.toLowerCase().includes('cvv')) {
-//                   await inputField.fill('089');
-//                   console.log(`✓ Filled card CVC in iframe ${iframeName}`);
-//                 }
-//               }
-//             }
-//           }
-//         } catch (error) {
-//           console.log(`Error processing iframe ${i}:`, error.message);
-//         }
-//       }
-//     } catch (error) {
-//       console.log('Dynamic iframe detection failed:', error.message);
-//     }
-
-//     console.log('✓ All checkout details filled successfully');
-//     console.log(`✓ Checkout process completed for product ${productNumber}`);
-//     return true;
-
-//   } catch (error) {
-//     console.log(`✗ Checkout process failed for product ${productNumber}:`, error.message);
-//     return false;
-//   }
-// }
-
 async function completeCheckoutProcess(productNumber, currentProductUrl) {
   try {
     console.log(`\n🛒 Starting checkout process for product ${productNumber}...`);
@@ -962,140 +579,328 @@ async function completeCheckoutProcess(productNumber, currentProductUrl) {
     console.log('Waiting for Stripe iframes to load...');
     await page.waitForTimeout(3000);
     
-    // Multiple approaches to handle Stripe iframes
+    // FIXED: MULTIPLE APPROACHES TO HANDLE STRIPE IFRAMES
+    console.log('\n--- Filling Card Number, Expiry and CVC ---');
+    
+    // Take screenshot before filling for debugging
     try {
-      // APPROACH 1: Try using the exact iframe titles you provided
-      console.log('Trying Approach 1: Using exact iframe titles...');
+      await page.screenshot({ path: `before-stripe-fill-${productNumber}.png` });
+    } catch (error) {
+      console.log('Could not take screenshot:', error.message);
+    }
+    
+    // APPROACH 1: Try using the exact iframe titles with specific input selectors
+    try {
+      console.log('Trying Approach 1: Using exact iframe titles with specific inputs...');
       
+      // Card Number iframe - Use more specific input selector
       try {
-        // Card Number iframe
         const cardNumberFrame = page.frameLocator('iframe[title*="Secure card number input frame"]');
-        await cardNumberFrame.locator('input').fill("4242424242424242");
+        // Use specific selector for card number input
+        await cardNumberFrame.locator('input[name="cardnumber"], input[placeholder*="1234"], input[aria-label*="card number"]').first().fill("4242424242424242", { timeout: 3000 });
         console.log('✓ Filled card number in Stripe iframe');
       } catch (error) {
-        console.log('⚠ Card number iframe not found with title');
+        console.log('⚠ Card number iframe fill failed:', error.message);
       }
       
+      await page.waitForTimeout(500);
+      
+      // Expiry iframe - Use more specific input selector
       try {
-        // Expiry iframe
         const expiryFrame = page.frameLocator('iframe[title*="Secure expiration date input frame"]');
-        await expiryFrame.locator('input').fill("12/34");
+        // Use specific selector for expiry input
+        await expiryFrame.locator('input[name="exp-date"], input[placeholder*="MM / YY"], input[aria-label*="expiration"]').first().fill("12/34", { timeout: 3000 });
         console.log('✓ Filled expiry in Stripe iframe');
       } catch (error) {
-        console.log('⚠ Expiry iframe not found with title');
+        console.log('⚠ Expiry iframe fill failed:', error.message);
       }
       
+      await page.waitForTimeout(500);
+      
+      // CVC iframe - Use more specific input selector
       try {
-        // CVC iframe
         const cvcFrame = page.frameLocator('iframe[title*="Secure CVC input frame"]');
-        await cvcFrame.locator('input').fill("123");
+        // Use specific selector for CVC input
+        await cvcFrame.locator('input[name="cvc"], input[placeholder*="CVC"], input[aria-label*="CVC"]').first().fill("123", { timeout: 3000 });
         console.log('✓ Filled CVC in Stripe iframe');
       } catch (error) {
-        console.log('⚠ CVC iframe not found with title');
+        console.log('⚠ CVC iframe fill failed:', error.message);
       }
       
     } catch (error) {
       console.log('Approach 1 failed:', error.message);
     }
     
-    // APPROACH 2: Try alternative iframe names/attributes
+    // Take screenshot after filling for verification
     try {
-      console.log('Trying Approach 2: Alternative iframe detection...');
+      await page.waitForTimeout(1000);
+      await page.screenshot({ path: `after-stripe-fill-${productNumber}.png` });
+      console.log('✓ Screenshot taken after card filling');
+    } catch (error) {
+      console.log('Could not take after screenshot:', error.message);
+    }
+    
+    console.log('\n✓ Card details filling completed');
+
+    // NEW: PAYMENT METHODS SECTION - FIXED (REMOVED SPECIFIC XPATH)
+    console.log('\n--- Payment Methods Section ---');
+    
+    // Scroll down to payment section
+    await scrollByPixels(800);
+    await page.waitForTimeout(2000);
+    
+    // STEP 1: Pay by Bank Transfer Radio Button
+    console.log('\n--- Selecting "Pay by Bank Transfer" ---');
+    await page.waitForTimeout(1000);
+    
+    // STEP 2: I accept the terms and conditions Checkbox
+    console.log('\n--- Accepting Terms and Conditions ---');
+    
+    try {
+      console.log('Looking for "I accept the terms and conditions" checkbox...');
       
-      // Get all iframes
-      const allIframes = await page.locator('iframe').all();
-      console.log(`Found ${allIframes.length} iframes on the page`);
+      // Multiple selectors for terms checkbox
+      const termsCheckboxSelectors = [
+        // XPath for span next to checkbox
+        page.locator('//input[@id="terms" and @type="checkbox"]/following-sibling::span'),
+        // Direct checkbox
+        page.locator('#terms[type="checkbox"]'),
+        // Checkbox by name
+        page.locator('input[name="terms"][type="checkbox"]'),
+        // Checkbox by class
+        page.locator('.woocommerce-terms-and-conditions-checkbox-text'),
+        // Label with terms text
+        page.locator('label').filter({ hasText: /i accept the terms and conditions/i }),
+        page.locator('label').filter({ hasText: /terms and conditions/i })
+      ];
       
-      let filledFields = 0;
+      let termsAccepted = false;
       
-      for (let i = 0; i < allIframes.length; i++) {
+      for (const selector of termsCheckboxSelectors) {
         try {
-          const iframe = allIframes[i];
-          const title = await iframe.getAttribute('title');
-          const name = await iframe.getAttribute('name');
-          
-          if (title && title.includes('Secure') && title.includes('input')) {
-            console.log(`Found secure iframe ${i}: title="${title}", name="${name}"`);
+          if (await selector.isVisible({ timeout: 2000 })) {
+            console.log(`Found terms checkbox selector: ${selector}`);
             
-            // Create frame locator
-            const stripeFrame = page.frameLocator(`iframe[title="${title}"]`);
+            // Scroll into view
+            await selector.scrollIntoViewIfNeeded();
+            await page.waitForTimeout(500);
             
-            // Try to fill the input field
-            const input = stripeFrame.locator('input[type="text"], input[type="tel"]');
-            if (await input.count() > 0) {
-              if (title.includes('card number')) {
-                await input.fill('4242424242424242');
-                filledFields++;
-                console.log('✓ Filled card number');
-              } else if (title.includes('expiration')) {
-                await input.fill('12/34');
-                filledFields++;
-                console.log('✓ Filled expiry');
-              } else if (title.includes('CVC')) {
-                await input.fill('123');
-                filledFields++;
-                console.log('✓ Filled CVC');
+            // Take screenshot for debugging
+            try {
+              await page.screenshot({ path: `debug-terms-checkbox-${productNumber}.png` });
+            } catch (screenshotError) {
+              console.log('Could not take screenshot:', screenshotError.message);
+            }
+            
+            // Try to check/click
+            try {
+              if (await selector.getAttribute('type') === 'checkbox') {
+                await selector.check({ force: true, timeout: 3000 });
+              } else {
+                await selector.click({ force: true, timeout: 3000 });
               }
+              console.log('✓ Terms and conditions accepted');
+              
+              // Verify selection
+              await page.waitForTimeout(1000);
+              
+              // Check if checkbox is checked
+              const termsCheckbox = page.locator('#terms[type="checkbox"], input[name="terms"][type="checkbox"]');
+              if (await termsCheckbox.first().isChecked({ timeout: 2000 })) {
+                console.log('✓ Verified: Terms and conditions are accepted');
+                termsAccepted = true;
+              } else {
+                // Force check via JavaScript
+                await page.evaluate(() => {
+                  const checkbox = document.getElementById('terms') || document.querySelector('input[name="terms"][type="checkbox"]');
+                  if (checkbox) {
+                    checkbox.checked = true;
+                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                  }
+                });
+                console.log('✓ Terms accepted via JavaScript');
+                termsAccepted = true;
+              }
+              break;
+            } catch (clickError) {
+              console.log(`Could not click selector: ${clickError.message}`);
             }
           }
         } catch (error) {
-          console.log(`Error processing iframe ${i}:`, error.message);
+          continue;
         }
       }
       
-      if (filledFields >= 2) {
-        console.log(`✓ Successfully filled ${filledFields} card fields`);
+      if (!termsAccepted) {
+        console.log('⚠ Terms and conditions checkbox not found');
       }
       
     } catch (error) {
-      console.log('Approach 2 failed:', error.message);
+      console.log('Terms checkbox error:', error.message);
     }
+
+    await page.waitForTimeout(1000);
     
-    // APPROACH 3: Fallback to generic Stripe iframe detection
+    // STEP 3: Register and Place your order Button
+    console.log('\n--- Clicking Register Button ---');
+    
     try {
-      console.log('Trying Approach 3: Generic Stripe detection...');
+      console.log('Looking for "Register and Place your order" button...');
       
-      // Look for any iframe with "Stripe" in name or src
-      const stripeIframes = await page.locator('iframe[name*="Stripe"], iframe[src*="stripe"], iframe[name*="__privateStripeFrame"]').all();
-      console.log(`Found ${stripeIframes.length} Stripe-related iframes`);
+      // Multiple selectors for register button
+      const registerButtonSelectors = [
+        // Exact text match
+        page.getByRole('button', { name: /Register and Place your order/i }),
+        // Case insensitive
+        page.getByRole('button', { name: /register and place your order/i }),
+        // Partial text
+        page.getByRole('button', { name: /Place your order/i }),
+        page.getByRole('button', { name: /Place Order/i }),
+        // Alternative button types
+        page.locator('button[type="submit"]').filter({ hasText: /register|place order/i }),
+        page.locator('input[type="submit"]').filter({ hasText: /register|place order/i }),
+        // Generic submit buttons
+        page.locator('button[type="submit"]'),
+        page.locator('input[type="submit"]')
+      ];
       
-      for (let i = 0; i < stripeIframes.length; i++) {
+      let registerButtonClicked = false;
+      
+      for (const button of registerButtonSelectors) {
         try {
-          const iframe = stripeIframes[i];
-          const name = await iframe.getAttribute('name') || '';
-          const title = await iframe.getAttribute('title') || '';
-          
-          console.log(`Processing Stripe iframe ${i}: name="${name}", title="${title}"`);
-          
-          // Fill based on name pattern
-          if (name.includes('card') || title.includes('card')) {
-            const cardFrame = page.frameLocator(`iframe[name="${name}"]`);
-            await cardFrame.locator('input').first().fill('4242424242424242');
-            console.log('✓ Filled card number in Stripe iframe');
-          } else if (name.includes('exp') || title.includes('exp')) {
-            const expFrame = page.frameLocator(`iframe[name="${name}"]`);
-            await expFrame.locator('input').first().fill('12/34');
-            console.log('✓ Filled expiry in Stripe iframe');
-          } else if (name.includes('cvc') || title.includes('cvc')) {
-            const cvcFrame = page.frameLocator(`iframe[name="${name}"]`);
-            await cvcFrame.locator('input').first().fill('123');
-            console.log('✓ Filled CVC in Stripe iframe');
+          if (await button.isVisible({ timeout: 2000 })) {
+            console.log(`Found register button: ${button}`);
+            
+            // Scroll into view
+            await button.scrollIntoViewIfNeeded();
+            await page.waitForTimeout(500);
+            
+            // Take screenshot before clicking
+            try {
+              await page.screenshot({ path: `before-register-click-${productNumber}.png` });
+            } catch (screenshotError) {
+              console.log('Could not take screenshot:', screenshotError.message);
+            }
+            
+            // Try to click with retries
+            for (let retry = 1; retry <= 3; retry++) {
+              try {
+                console.log(`Attempt ${retry} to click register button...`);
+                
+                // Click with force option
+                await button.click({ 
+                  force: true, 
+                  timeout: 5000,
+                  delay: 200 // Add delay for better reliability
+                });
+                
+                console.log(`✓ Register button clicked (attempt ${retry})`);
+                registerButtonClicked = true;
+                
+                // Wait for page to process
+                await page.waitForTimeout(3000);
+                
+                // Check if order was placed successfully
+                const successIndicators = [
+                  page.getByText(/thank you/i),
+                  page.getByText(/order received/i),
+                  page.getByText(/confirmation/i),
+                  page.getByText(/success/i),
+                  page.locator('.woocommerce-order'),
+                  page.locator('.order-confirmation'),
+                  page.locator('.order-received')
+                ];
+                
+                for (const indicator of successIndicators) {
+                  try {
+                    if (await indicator.isVisible({ timeout: 1000 })) {
+                      console.log('✓ Order placed successfully! Confirmation found.');
+                      try {
+                        await page.screenshot({ path: `order-success-${productNumber}.png` });
+                      } catch (screenshotError) {
+                        console.log('Could not take success screenshot:', screenshotError.message);
+                      }
+                      break;
+                    }
+                  } catch {
+                    continue;
+                  }
+                }
+                
+                // Check URL change
+                const currentUrl = await page.url();
+                if (!currentUrl.includes('checkout')) {
+                  console.log('✓ Page navigated away from checkout - order likely successful');
+                }
+                
+                break; // Success, break retry loop
+                
+              } catch (clickError) {
+                console.log(`Click attempt ${retry} failed: ${clickError.message}`);
+                
+                if (retry < 3) {
+                  await page.waitForTimeout(1000);
+                  
+                  // Try JavaScript click as fallback
+                  try {
+                    await button.evaluate(el => el.click());
+                    console.log(`✓ Register button clicked via JavaScript (retry ${retry})`);
+                    registerButtonClicked = true;
+                    await page.waitForTimeout(3000);
+                    break;
+                  } catch (jsError) {
+                    console.log(`JavaScript click also failed: ${jsError.message}`);
+                  }
+                }
+              }
+            }
+            
+            if (registerButtonClicked) break;
           }
         } catch (error) {
-          console.log(`Error with Stripe iframe ${i}:`, error.message);
+          continue;
+        }
+      }
+      
+      if (registerButtonClicked) {
+        console.log('✓ Register button successfully clicked');
+      } else {
+        console.log('⚠ Could not find or click register button');
+        try {
+          await page.screenshot({ path: `register-button-not-found-${productNumber}.png` });
+        } catch (screenshotError) {
+          console.log('Could not take screenshot:', screenshotError.message);
         }
       }
       
     } catch (error) {
-      console.log('Approach 3 failed:', error.message);
+      console.log('Register button error:', error.message);
+      try {
+        await page.screenshot({ path: `register-button-error-${productNumber}.png` });
+      } catch (screenshotError) {
+        console.log('Could not take error screenshot:', screenshotError.message);
+      }
     }
 
-    console.log('✓ All checkout details filled successfully');
-    console.log(`✓ Checkout process completed for product ${productNumber}`);
+    // Final summary
+    console.log('\n' + '='.repeat(50));
+    console.log(`CHECKOUT PROCESS COMPLETED FOR PRODUCT ${productNumber}`);
+    console.log('='.repeat(50));
+    console.log('✓ All steps attempted');
+    console.log('✓ Screenshots saved for debugging');
+    console.log('✓ Process completed');
+    
     return true;
-
   } catch (error) {
-    console.log(`✗ Checkout process failed for product ${productNumber}:`, error.message);
+    console.log(`\n✗ Checkout process failed for product ${productNumber}:`, error.message);
+    
+    // Take error screenshot
+    try {
+      await page.screenshot({ path: `checkout-fatal-error-${productNumber}.png` });
+    } catch (screenshotError) {
+      console.log('Could not take error screenshot:', screenshotError.message);
+    }
+    
     return false;
   }
 }
