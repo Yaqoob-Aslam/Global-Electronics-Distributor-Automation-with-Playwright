@@ -1035,7 +1035,7 @@ async function completeCheckoutProcess(productNumber, currentProductUrl) {
       const productCards = await page.locator("div.col-12.product-card").all();
       console.log(`Total products found: ${productCards.length}`);
 
-      const testProducts = Math.min(productCards.length, 2);
+      const testProducts = Math.min(productCards.length, 100);
       let successfulCheckouts = 0;
       
       for (let i = 0; i < testProducts; i++) {
